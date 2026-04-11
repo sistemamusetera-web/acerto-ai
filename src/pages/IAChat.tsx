@@ -124,8 +124,10 @@ export default function IAChat() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [chatId, setChatId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
