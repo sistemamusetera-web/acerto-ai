@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      caderno_erros: {
+        Row: {
+          acertou_revisao: boolean
+          assunto: string
+          created_at: string
+          id: string
+          materia: string
+          proxima_revisao: string
+          questao_data: Json
+          resposta_correta: string
+          resposta_usuario: string
+          user_id: string
+          vezes_revisada: number
+        }
+        Insert: {
+          acertou_revisao?: boolean
+          assunto: string
+          created_at?: string
+          id?: string
+          materia: string
+          proxima_revisao?: string
+          questao_data: Json
+          resposta_correta: string
+          resposta_usuario: string
+          user_id: string
+          vezes_revisada?: number
+        }
+        Update: {
+          acertou_revisao?: boolean
+          assunto?: string
+          created_at?: string
+          id?: string
+          materia?: string
+          proxima_revisao?: string
+          questao_data?: Json
+          resposta_correta?: string
+          resposta_usuario?: string
+          user_id?: string
+          vezes_revisada?: number
+        }
+        Relationships: []
+      }
       chat_history: {
         Row: {
           created_at: string
@@ -74,6 +116,74 @@ export type Database = {
         }
         Relationships: []
       }
+      plano_estudos: {
+        Row: {
+          created_at: string
+          id: string
+          plano_data: Json
+          semana: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plano_data?: Json
+          semana: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plano_data?: Json
+          semana?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plano_tarefas: {
+        Row: {
+          created_at: string
+          dia: string
+          done: boolean
+          id: string
+          materia: string
+          plano_id: string
+          tempo_minutos: number
+          topico: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dia: string
+          done?: boolean
+          id?: string
+          materia: string
+          plano_id: string
+          tempo_minutos?: number
+          topico: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dia?: string
+          done?: boolean
+          id?: string
+          materia?: string
+          plano_id?: string
+          tempo_minutos?: number
+          topico?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_tarefas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "plano_estudos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -121,6 +231,7 @@ export type Database = {
           percentage: number
           score: number
           simulado_data: Json | null
+          tempos_por_questao: Json | null
           total: number
           user_id: string
         }
@@ -134,6 +245,7 @@ export type Database = {
           percentage: number
           score: number
           simulado_data?: Json | null
+          tempos_por_questao?: Json | null
           total: number
           user_id: string
         }
@@ -147,6 +259,7 @@ export type Database = {
           percentage?: number
           score?: number
           simulado_data?: Json | null
+          tempos_por_questao?: Json | null
           total?: number
           user_id?: string
         }

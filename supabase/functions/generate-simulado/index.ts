@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { banca, materia, quantidade, nivel } = await req.json();
+    const { banca, materia, quantidade, nivel, adaptativo, weakTopics, erroAssuntos } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -20,6 +20,14 @@ Sua função é gerar simulados realistas baseados no estilo da banca ${banca}.
 Características da banca ${banca}:
 ${getBancaProfile(banca)}
 
+${adaptativo ? `MODO ADAPTATIVO ATIVADO:
+- Tópicos fracos do aluno: ${JSON.stringify(weakTopics || [])}
+- Assuntos com mais erros: ${JSON.stringify(erroAssuntos || [])}
+- Gere 60% das questões focando nos tópicos fracos
+- 30% em tópicos de dificuldade média
+- 10% em tópicos que o aluno já domina (para manter confiança)
+- Comece com dificuldade compatível e aumente progressivamente
+` : ''}
 INSTRUÇÕES:
 1. Gere exatamente ${quantidade} questões no estilo da banca ${banca}
 2. Matéria: ${materia}

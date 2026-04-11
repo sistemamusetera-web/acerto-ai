@@ -8,6 +8,7 @@ import AppSidebar from "@/components/AppSidebar";
 import Dashboard from "./pages/Dashboard";
 import Simulado from "./pages/Simulado";
 import Desempenho from "./pages/Desempenho";
+import CadernoErros from "./pages/CadernoErros";
 import PlanoEstudos from "./pages/PlanoEstudos";
 import Estrategias from "./pages/Estrategias";
 import IAChat from "./pages/IAChat";
@@ -37,6 +38,7 @@ function ProtectedRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/simulado" element={<Simulado />} />
           <Route path="/desempenho" element={<Desempenho />} />
+          <Route path="/caderno" element={<CadernoErros />} />
           <Route path="/plano" element={<PlanoEstudos />} />
           <Route path="/estrategia" element={<Estrategias />} />
           <Route path="/ia" element={<IAChat />} />

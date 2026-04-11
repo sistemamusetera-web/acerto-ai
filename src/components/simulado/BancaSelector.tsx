@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const bancas = [
   { id: "CESPE", nome: "CESPE/CEBRASPE", desc: "Certo/Errado • Pegadinhas sutis • Jurisprudência" },
@@ -25,7 +27,7 @@ const niveis = [
 ];
 
 interface Props {
-  onStart: (config: { banca: string; materia: string; quantidade: number; nivel: string }) => void;
+  onStart: (config: { banca: string; materia: string; quantidade: number; nivel: string; modoProva?: boolean; adaptativo?: boolean }) => void;
   loading: boolean;
 }
 
@@ -34,6 +36,8 @@ export default function BancaSelector({ onStart, loading }: Props) {
   const [materia, setMateria] = useState("");
   const [quantidade, setQuantidade] = useState(5);
   const [nivel, setNivel] = useState("misto");
+  const [modoProva, setModoProva] = useState(false);
+  const [adaptativo, setAdaptativo] = useState(false);
 
   return (
     <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -97,12 +101,30 @@ export default function BancaSelector({ onStart, loading }: Props) {
           </div>
         </div>
 
+        {/* Toggles */}
+        <div className="space-y-3 bg-muted/20 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="modo-prova" className="text-sm font-medium">🕐 Modo Prova Real</Label>
+              <p className="text-xs text-muted-foreground">Timer global de 3min/questão, sem voltar</p>
+            </div>
+            <Switch id="modo-prova" checked={modoProva} onCheckedChange={setModoProva} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="adaptativo" className="text-sm font-medium">🧠 Simulado Adaptativo</Label>
+              <p className="text-xs text-muted-foreground">Foca nos seus pontos fracos automaticamente</p>
+            </div>
+            <Switch id="adaptativo" checked={adaptativo} onCheckedChange={setAdaptativo} />
+          </div>
+        </div>
+
         <Button
-          onClick={() => onStart({ banca, materia, quantidade, nivel })}
+          onClick={() => onStart({ banca, materia, quantidade, nivel, modoProva, adaptativo })}
           disabled={!banca || !materia || loading}
           className="w-full gradient-primary font-semibold"
         >
-          {loading ? "Gerando simulado com IA..." : "🎯 Gerar Simulado Inteligente"}
+          {loading ? "Gerando simulado com IA..." : adaptativo ? "🧠 Gerar Simulado Adaptativo" : "🎯 Gerar Simulado Inteligente"}
         </Button>
       </div>
     </motion.div>
