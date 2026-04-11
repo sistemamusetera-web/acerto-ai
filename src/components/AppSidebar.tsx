@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, BarChart3, Calendar, Brain, Target, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, FileText, BarChart3, Calendar, Brain, Target, BookX, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 
@@ -7,6 +7,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/simulado", icon: FileText, label: "Simulado" },
   { to: "/desempenho", icon: BarChart3, label: "Desempenho" },
+  { to: "/caderno", icon: BookX, label: "Caderno de Erros" },
   { to: "/plano", icon: Calendar, label: "Plano de Estudos" },
   { to: "/estrategia", icon: Target, label: "Estratégias" },
   { to: "/ia", icon: Brain, label: "IA Concurseira" },
