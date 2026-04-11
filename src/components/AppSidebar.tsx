@@ -1,0 +1,49 @@
+import { Link, useLocation } from "react-router-dom";
+import { LayoutDashboard, FileText, BarChart3, Calendar, Brain, Target } from "lucide-react";
+
+const navItems = [
+  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/simulado", icon: FileText, label: "Simulado" },
+  { to: "/desempenho", icon: BarChart3, label: "Desempenho" },
+  { to: "/plano", icon: Calendar, label: "Plano de Estudos" },
+  { to: "/estrategia", icon: Target, label: "Estratégias" },
+  { to: "/ia", icon: Brain, label: "IA Concurseira" },
+];
+
+export default function AppSidebar() {
+  const { pathname } = useLocation();
+
+  return (
+    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-50">
+      <div className="p-6 border-b border-sidebar-border">
+        <h1 className="font-display text-xl font-bold gradient-text">ConcursIA</h1>
+        <p className="text-xs text-muted-foreground mt-1">IA para aprovação</p>
+      </div>
+      <nav className="flex-1 p-4 space-y-1">
+        {navItems.map(({ to, icon: Icon, label }) => {
+          const active = pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                active
+                  ? "bg-sidebar-accent text-primary"
+                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="p-4 border-t border-sidebar-border">
+        <div className="glass-card p-3 text-center">
+          <p className="text-xs text-muted-foreground">Prova em</p>
+          <p className="font-display text-lg font-bold text-primary">32 dias</p>
+        </div>
+      </div>
+    </aside>
+  );
+}
