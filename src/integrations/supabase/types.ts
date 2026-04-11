@@ -14,7 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_history: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      desempenho_stats: {
+        Row: {
+          acertos: number
+          created_at: string
+          erros: number
+          id: string
+          materia: string
+          tempo_medio_segundos: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acertos?: number
+          created_at?: string
+          erros?: number
+          id?: string
+          materia: string
+          tempo_medio_segundos?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acertos?: number
+          created_at?: string
+          erros?: number
+          id?: string
+          materia?: string
+          tempo_medio_segundos?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          banca_preferida: string | null
+          concurso_alvo: string | null
+          created_at: string
+          display_name: string | null
+          horas_estudo_semanal: number | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          banca_preferida?: string | null
+          concurso_alvo?: string | null
+          created_at?: string
+          display_name?: string | null
+          horas_estudo_semanal?: number | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          banca_preferida?: string | null
+          concurso_alvo?: string | null
+          created_at?: string
+          display_name?: string | null
+          horas_estudo_semanal?: number | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      simulado_history: {
+        Row: {
+          answers: Json | null
+          banca: string
+          created_at: string
+          id: string
+          materia: string
+          nivel: string
+          percentage: number
+          score: number
+          simulado_data: Json | null
+          total: number
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          banca: string
+          created_at?: string
+          id?: string
+          materia: string
+          nivel: string
+          percentage: number
+          score: number
+          simulado_data?: Json | null
+          total: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          banca?: string
+          created_at?: string
+          id?: string
+          materia?: string
+          nivel?: string
+          percentage?: number
+          score?: number
+          simulado_data?: Json | null
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
