@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
