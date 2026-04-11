@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import BancaSelector from "@/components/simulado/BancaSelector";
 import SimuladoQuestion from "@/components/simulado/SimuladoQuestion";
@@ -35,30 +36,76 @@ export default function Simulado() {
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [showResult, setShowResult] = useState(false);
+  const [config, setConfig] = useState<{ banca: string; materia: string; quantidade: number; nivel: string } | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleStart = async (config: { banca: string; materia: string; quantidade: number; nivel: string }) => {
+  const handleStart = async (cfg: { banca: string; materia: string; quantidade: number; nivel: string }) => {
     setLoading(true);
+    setConfig(cfg);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-simulado", {
-        body: config,
-      });
-
+      const { data, error } = await supabase.functions.invoke("generate-simulado", { body: cfg });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       setSimuladoData(data);
       setCurrentQ(0);
       setAnswers({});
       setShowResult(false);
     } catch (err: any) {
-      toast({
-        title: "Erro ao gerar simulado",
-        description: err.message || "Tente novamente em alguns segundos.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao gerar simulado", description: err.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFinish = async () => {
+    setShowResult(true);
+    if (!simuladoData || !config || !user) return;
+
+    const questions = simuladoData.questoes;
+    const score = questions.filter((q) => answers[q.id] === q.correta).length;
+    const percentage = Math.round((score / questions.length) * 100);
+
+    try {
+      // Save simulado history
+      await supabase.from("simulado_history").insert({
+        user_id: user.id,
+        banca: config.banca,
+        materia: config.materia,
+        nivel: config.nivel,
+        score,
+        total: questions.length,
+        percentage,
+        simulado_data: simuladoData as any,
+        answers: answers as any,
+      });
+
+      // Upsert desempenho stats
+      const { data: existing } = await supabase
+        .from("desempenho_stats")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("materia", config.materia)
+        .maybeSingle();
+
+      const acertos = questions.filter((q) => answers[q.id] === q.correta).length;
+      const erros = questions.length - acertos;
+
+      if (existing) {
+        await supabase.from("desempenho_stats").update({
+          acertos: existing.acertos + acertos,
+          erros: existing.erros + erros,
+        }).eq("id", existing.id);
+      } else {
+        await supabase.from("desempenho_stats").insert({
+          user_id: user.id,
+          materia: config.materia,
+          acertos,
+          erros,
+        });
+      }
+    } catch (err) {
+      console.error("Error saving results:", err);
     }
   };
 
@@ -67,6 +114,7 @@ export default function Simulado() {
     setCurrentQ(0);
     setAnswers({});
     setShowResult(false);
+    setConfig(null);
   };
 
   if (!simuladoData) {
@@ -97,7 +145,7 @@ export default function Simulado() {
       onAnswer={(letra) => setAnswers((prev) => ({ ...prev, [questions[currentQ].id]: letra }))}
       onPrev={() => setCurrentQ((p) => Math.max(0, p - 1))}
       onNext={() => setCurrentQ((p) => p + 1)}
-      onFinish={() => setShowResult(true)}
+      onFinish={handleFinish}
       answeredCount={Object.keys(answers).length}
       allQuestions={questions}
       answers={answers}

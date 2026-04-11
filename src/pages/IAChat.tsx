@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -122,8 +124,10 @@ export default function IAChat() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [chatId, setChatId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -151,12 +155,26 @@ export default function IAChat() {
     };
 
     try {
-      // Send all messages except the initial greeting for context
       const historyMessages = [...messages.slice(1), userMsg];
       await streamChat({
         messages: historyMessages,
         onDelta: (chunk) => upsertAssistant(chunk),
-        onDone: () => setIsLoading(false),
+        onDone: async () => {
+          setIsLoading(false);
+          // Save chat to DB
+          if (user) {
+            const allMessages = [...messages, userMsg, { role: "assistant" as const, content: assistantSoFar }];
+            const title = userMsg.content.slice(0, 60);
+            try {
+              if (chatId) {
+                await supabase.from("chat_history").update({ messages: allMessages as any, title }).eq("id", chatId);
+              } else {
+                const { data } = await supabase.from("chat_history").insert({ user_id: user.id, messages: allMessages as any, title }).select("id").single();
+                if (data) setChatId(data.id);
+              }
+            } catch (err) { console.error("Error saving chat:", err); }
+          }
+        },
         onError: (err) => {
           toast({ title: "Erro", description: err, variant: "destructive" });
           setIsLoading(false);
@@ -167,7 +185,7 @@ export default function IAChat() {
       toast({ title: "Erro", description: "Falha na conexão com a IA", variant: "destructive" });
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, toast]);
+  }, [input, isLoading, messages, toast, user, chatId]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)]">

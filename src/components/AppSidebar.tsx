@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, BarChart3, Calendar, Brain, Target } from "lucide-react";
+import { LayoutDashboard, FileText, BarChart3, Calendar, Brain, Target, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -12,6 +13,7 @@ const navItems = [
 
 export default function AppSidebar() {
   const { pathname } = useLocation();
+  const { user, signOut } = useAuth();
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-50">
@@ -38,11 +40,19 @@ export default function AppSidebar() {
           );
         })}
       </nav>
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="glass-card p-3 text-center">
-          <p className="text-xs text-muted-foreground">Prova em</p>
-          <p className="font-display text-lg font-bold text-primary">32 dias</p>
-        </div>
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        {user && (
+          <div className="text-xs text-muted-foreground truncate px-1">
+            {user.email}
+          </div>
+        )}
+        <button
+          onClick={signOut}
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Sair
+        </button>
       </div>
     </aside>
   );
