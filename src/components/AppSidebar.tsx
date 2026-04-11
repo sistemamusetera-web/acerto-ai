@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, BarChart3, Calendar, Brain, Target, BookX, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, FileText, BarChart3, Calendar, Brain, Target, BookX, ClipboardList, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 
@@ -11,6 +11,7 @@ const navItems = [
   { to: "/plano", icon: Calendar, label: "Plano de Estudos" },
   { to: "/estrategia", icon: Target, label: "Estratégias" },
   { to: "/ia", icon: Brain, label: "IA Concurseira" },
+  { to: "/analise-edital", icon: ClipboardList, label: "Análise de Edital" },
 ];
 
 export default function AppSidebar() {
