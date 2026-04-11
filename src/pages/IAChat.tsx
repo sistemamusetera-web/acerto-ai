@@ -1,12 +1,16 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Brain, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/concursia-chat`;
 
 const suggestions = [
   "Analise o padrão de gabarito da banca CESPE para Direito Constitucional",
@@ -14,6 +18,99 @@ const suggestions = [
   "Quais são as pegadinhas mais comuns em questões de Português?",
   "Monte um plano de estudos para concurso da Polícia Federal em 3 meses",
 ];
+
+async function streamChat({
+  messages,
+  onDelta,
+  onDone,
+  onError,
+}: {
+  messages: Message[];
+  onDelta: (text: string) => void;
+  onDone: () => void;
+  onError: (err: string) => void;
+}) {
+  const resp = await fetch(CHAT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ messages }),
+  });
+
+  if (!resp.ok) {
+    let errMsg = "Erro ao conectar com a IA";
+    try {
+      const errData = await resp.json();
+      errMsg = errData.error || errMsg;
+    } catch {
+      await resp.text();
+    }
+    onError(errMsg);
+    return;
+  }
+
+  if (!resp.body) {
+    onError("Resposta vazia da IA");
+    return;
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let textBuffer = "";
+  let streamDone = false;
+
+  while (!streamDone) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    textBuffer += decoder.decode(value, { stream: true });
+
+    let newlineIndex: number;
+    while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+      let line = textBuffer.slice(0, newlineIndex);
+      textBuffer = textBuffer.slice(newlineIndex + 1);
+
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      if (line.startsWith(":") || line.trim() === "") continue;
+      if (!line.startsWith("data: ")) continue;
+
+      const jsonStr = line.slice(6).trim();
+      if (jsonStr === "[DONE]") {
+        streamDone = true;
+        break;
+      }
+
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch {
+        textBuffer = line + "\n" + textBuffer;
+        break;
+      }
+    }
+  }
+
+  // Flush remaining
+  if (textBuffer.trim()) {
+    for (let raw of textBuffer.split("\n")) {
+      if (!raw) continue;
+      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+      if (raw.startsWith(":") || raw.trim() === "") continue;
+      if (!raw.startsWith("data: ")) continue;
+      const jsonStr = raw.slice(6).trim();
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch { /* ignore */ }
+    }
+  }
+
+  onDone();
+}
 
 export default function IAChat() {
   const [messages, setMessages] = useState<Message[]>([
@@ -24,36 +121,53 @@ export default function IAChat() {
     },
   ]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async (text?: string) => {
+  const handleSend = useCallback(async (text?: string) => {
     const msg = text || input.trim();
-    if (!msg || loading) return;
+    if (!msg || isLoading) return;
     setInput("");
 
     const userMsg: Message = { role: "user", content: msg };
     setMessages((prev) => [...prev, userMsg]);
-    setLoading(true);
+    setIsLoading(true);
 
-    // Simulated AI response (replace with real AI later)
-    setTimeout(() => {
-      const responses: Record<string, string> = {
-        default:
-          "Ótima pergunta! Para uma análise completa, preciso que você me informe:\n\n1. **Qual banca examinadora?** (CESPE, FCC, FGV, VUNESP, etc.)\n2. **Qual concurso/cargo?**\n3. **Quais matérias tem mais dificuldade?**\n\nCom essas informações, posso criar uma estratégia personalizada para maximizar suas chances de aprovação! 🎯",
-      };
+    let assistantSoFar = "";
+    const upsertAssistant = (nextChunk: string) => {
+      assistantSoFar += nextChunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && prev.length > 1 && prev[prev.length - 2]?.role === "user" && prev[prev.length - 2]?.content === msg) {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+        }
+        return [...prev, { role: "assistant", content: assistantSoFar }];
+      });
+    };
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: responses.default },
-      ]);
-      setLoading(false);
-    }, 1500);
-  };
+    try {
+      // Send all messages except the initial greeting for context
+      const historyMessages = [...messages.slice(1), userMsg];
+      await streamChat({
+        messages: historyMessages,
+        onDelta: (chunk) => upsertAssistant(chunk),
+        onDone: () => setIsLoading(false),
+        onError: (err) => {
+          toast({ title: "Erro", description: err, variant: "destructive" });
+          setIsLoading(false);
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Erro", description: "Falha na conexão com a IA", variant: "destructive" });
+      setIsLoading(false);
+    }
+  }, [input, isLoading, messages, toast]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)]">
@@ -62,7 +176,7 @@ export default function IAChat() {
           <Sparkles className="w-6 h-6 text-primary" />
           IA Concurseira
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">Chat inteligente especializado em concursos públicos</p>
+        <p className="text-sm text-muted-foreground mt-1">Chat inteligente com IA real especializada em concursos públicos</p>
       </div>
 
       {/* Messages */}
@@ -80,11 +194,17 @@ export default function IAChat() {
               </div>
             )}
             <div
-              className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line ${
+              className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                 msg.role === "user" ? "bg-primary text-primary-foreground" : "glass-card"
               }`}
             >
-              {msg.content}
+              {msg.role === "assistant" ? (
+                <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_table]:text-xs">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                msg.content
+              )}
             </div>
             {msg.role === "user" && (
               <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
@@ -93,16 +213,16 @@ export default function IAChat() {
             )}
           </motion.div>
         ))}
-        {loading && (
+        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shrink-0">
               <Brain className="w-4 h-4 text-primary-foreground" />
             </div>
             <div className="glass-card px-4 py-3 rounded-xl">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse-glow" />
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse-glow" style={{ animationDelay: "0.3s" }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse-glow" style={{ animationDelay: "0.6s" }} />
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.3s" }} />
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.6s" }} />
               </div>
             </div>
           </div>
@@ -134,7 +254,7 @@ export default function IAChat() {
           placeholder="Pergunte sobre concursos, estratégias, bancas..."
           className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
-        <Button onClick={() => handleSend()} disabled={!input.trim() || loading} className="gradient-primary h-auto px-4 rounded-xl">
+        <Button onClick={() => handleSend()} disabled={!input.trim() || isLoading} className="gradient-primary h-auto px-4 rounded-xl">
           <Send className="w-4 h-4" />
         </Button>
       </div>
