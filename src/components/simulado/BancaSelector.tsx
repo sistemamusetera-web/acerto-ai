@@ -108,5 +108,3 @@ export default function BancaSelector({ onStart, loading }: Props) {
     </motion.div>
   );
 }
-
-import { useState } from "react";
