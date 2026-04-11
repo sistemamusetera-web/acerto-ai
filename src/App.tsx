@@ -12,6 +12,7 @@ import CadernoErros from "./pages/CadernoErros";
 import PlanoEstudos from "./pages/PlanoEstudos";
 import Estrategias from "./pages/Estrategias";
 import IAChat from "./pages/IAChat";
+import AnaliseEdital from "./pages/AnaliseEdital";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +43,7 @@ function ProtectedRoutes() {
           <Route path="/plano" element={<PlanoEstudos />} />
           <Route path="/estrategia" element={<Estrategias />} />
           <Route path="/ia" element={<IAChat />} />
+          <Route path="/analise-edital" element={<AnaliseEdital />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
