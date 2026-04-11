@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { banca, concursoAlvo } = await req.json();
+    const { banca, concursoAlvo, editalText } = await req.json();
     if (!banca || typeof banca !== "string") {
       return new Response(JSON.stringify({ error: "Banca é obrigatória" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -19,16 +19,34 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const hasEdital = editalText && typeof editalText === "string" && editalText.trim().length > 50;
+
     const systemPrompt = `Você é um analista especialista em concursos públicos brasileiros com décadas de experiência.
 
 Sua tarefa é gerar uma análise APROFUNDADA e DETALHADA sobre a banca examinadora "${banca}"${concursoAlvo ? ` para o concurso "${concursoAlvo}"` : ""}.
 
-Baseie-se em todo o seu conhecimento sobre editais anteriores e atuais desta banca.
+${hasEdital ? `CONTEXTO ESPECIAL: O candidato enviou o texto completo de um edital. Analise cuidadosamente CADA DISCIPLINA e TÓPICO mencionado no edital.
+
+TEXTO DO EDITAL:
+---
+${editalText.substring(0, 30000)}
+---
+
+Com base EXCLUSIVAMENTE no conteúdo deste edital:
+- Identifique TODAS as disciplinas e seus tópicos
+- Cruze com os padrões históricos da banca ${banca}
+- Determine quais tópicos têm maior probabilidade de cair
+- Calcule o grau de dificuldade por disciplina
+- Priorize estrategicamente os temas
+` : `Baseie-se em todo o seu conhecimento sobre editais anteriores e atuais desta banca.`}
 
 Responda APENAS com JSON válido no formato:
 {
   "banca": "${banca}",
-  "resumo": "Parágrafo resumindo o perfil da banca",
+  "resumo": "Parágrafo resumindo o perfil da banca e do edital",
+  ${hasEdital ? `"disciplinas_edital": [
+    {"disciplina": "...", "topicos": ["..."], "peso_estimado": "Alto|Médio|Baixo", "dificuldade": "Alta|Média|Baixa", "questoes_estimadas": 5}
+  ],` : ""}
   "topicos_frequentes": [
     {"materia": "...", "topico": "...", "frequencia": "Alta|Média|Baixa", "observacao": "..."}
   ],
@@ -49,6 +67,11 @@ Responda APENAS com JSON válido no formato:
       {"dia": "Segunda", "atividades": ["..."]}
     ],
     "dicas_extras": ["..."]
+  },
+  "simulado_config": {
+    "disciplinas_disponiveis": ["..."],
+    "topicos_por_disciplina": {"Disciplina": ["Tópico 1", "Tópico 2"]},
+    "total_questoes_sugerido": 60
   }
 }
 
@@ -58,6 +81,7 @@ IMPORTANTE:
 - Inclua pelo menos 6 estratégias
 - Inclua pelo menos 5 pontos críticos
 - O método de estudo deve ter pelo menos 3 fases
+${hasEdital ? "- Inclua TODAS as disciplinas encontradas no edital em disciplinas_edital\n- simulado_config deve refletir as disciplinas do edital" : ""}
 - Seja específico e prático, evite generalidades`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -67,10 +91,12 @@ IMPORTANTE:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Gere a análise completa da banca ${banca}. Responda apenas com JSON válido.` },
+          { role: "user", content: hasEdital
+            ? `Analise o edital enviado da banca ${banca} e gere a análise completa com configuração de simulado. JSON válido apenas.`
+            : `Gere a análise completa da banca ${banca}. Responda apenas com JSON válido.` },
         ],
       }),
     });
