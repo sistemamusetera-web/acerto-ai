@@ -32,7 +32,7 @@ function ProtectedRoutes() {
   return (
     <div className="flex min-h-screen">
       <AppSidebar />
-      <main className="flex-1 ml-64 p-6">
+      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 p-4 sm:p-6">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/simulado" element={<Simulado />} />
