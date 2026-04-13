@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AppSidebar from "@/components/AppSidebar";
+import ProfileSetupModal from "@/components/ProfileSetupModal";
 import Dashboard from "./pages/Dashboard";
 import Simulado from "./pages/Simulado";
 import Desempenho from "./pages/Desempenho";
