@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useProfile } from "@/hooks/useProfile";
+import { Sparkles } from "lucide-react";
 
 const bancas = [
   { id: "CESPE", nome: "CESPE/CEBRASPE", desc: "Certo/Errado • Pegadinhas sutis • Jurisprudência" },
@@ -32,6 +34,7 @@ interface Props {
 }
 
 export default function BancaSelector({ onStart, loading }: Props) {
+  const { profile } = useProfile();
   const [banca, setBanca] = useState("");
   const [materia, setMateria] = useState("");
   const [quantidade, setQuantidade] = useState(5);
@@ -39,12 +42,23 @@ export default function BancaSelector({ onStart, loading }: Props) {
   const [modoProva, setModoProva] = useState(false);
   const [adaptativo, setAdaptativo] = useState(false);
 
+  // Pre-fill from profile
+  useEffect(() => {
+    if (profile?.banca_preferida && !banca) {
+      setBanca(profile.banca_preferida);
+    }
+  }, [profile?.banca_preferida]);
+
   return (
     <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center min-h-[60vh]">
       <div className="glass-card p-8 max-w-2xl w-full space-y-6">
         <div className="text-center">
           <h1 className="font-display text-2xl font-bold mb-1">Simulado Inteligente</h1>
-          <p className="text-sm text-muted-foreground">Gerado por IA baseado no estilo real da banca</p>
+          <p className="text-sm text-muted-foreground">
+            {profile?.concurso_alvo
+              ? `Personalizado para ${profile.concurso_alvo}`
+              : "Gerado por IA baseado no estilo real da banca"}
+          </p>
         </div>
 
         {/* Banca */}
@@ -61,7 +75,10 @@ export default function BancaSelector({ onStart, loading }: Props) {
                     : "border-border hover:border-primary/50 hover:bg-muted/30"
                 }`}
               >
-                <p className="font-semibold font-display">{b.nome}</p>
+                <p className="font-semibold font-display flex items-center gap-1">
+                  {b.nome}
+                  {b.id === profile?.banca_preferida && <Sparkles className="w-3 h-3 text-accent" />}
+                </p>
                 <p className="text-xs text-muted-foreground mt-0.5">{b.desc}</p>
               </button>
             ))}
